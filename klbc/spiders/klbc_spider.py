@@ -67,7 +67,8 @@ class KlbcSpider(Spider):
 
 
 	# def parse_page(self, response):
-	# 	links = response.xpath('/html/body/div[2]/ul/li/div/p/a')
+	# 	l = response.xpath('//div[@class="item"]')
+	# 	links = l.xpath('//p[@class="title"]/a')
 	# 	original_url = "http://vbpl.vn/TW/Pages/vbpq-toanvan.aspx?ItemID="
 		
 	# 	for link in links:
@@ -78,21 +79,24 @@ class KlbcSpider(Spider):
 	# 		meta['item_id'] = item_id
 	# 		url = original_url + item_id
 	# 		yield scrapy.Request(url, callback = self.parse_document, meta = meta)
-	# 		# yield scrapy.Request(url, callback = self.parse_get_pdt_file,meta = meta)
+			# yield scrapy.Request(url, callback = self.parse_get_pdt_file,meta = meta)
 
 	def parse_page(self,response):
-		items  = response.xpath('//div[@class="item"]')
+		items  = response.xpath('//div[@class="item"]//p[@class="title"]')
 		original_url = "http://vbpl.vn/TW/Pages/vbpq-toanvan.aspx?ItemID="
+		descriptions = response.xpath('//div[@class="item"]//div[@class="left"]/div[@class="des"]/p/text()')
 		for i in items:
-			link = i.xpath('//p[@class="title"]/a')
+			# link = ""
+			# link = i.xpath('//p[@class="title"]/a')
 			# l = link.xpath('@href').extract()[0]
-			l = i.xpath('//p[@class="title"]/a/@href').extract()[0]
+			l = i.xpath('a/@href').extract()[0]
 			item_id = (l.split('ItemID=')[1]).split('&')[0]
 			name = ""
 			description = ""
 			try:
-				name = (i.xpath('//p[@class="title"]/a/text()').extract_first()).strip()
-				description = (i.xpath('//div[@class="left"]/div[@class="des"]/p/text()').extract_first()).strip()
+				name = (i.xpath('a/text()').extract_first()).strip()
+				# description = (i.xpath('//div[@class="left"]/div[@class="des"]/p/text()').extract_first()).strip()
+				description = descriptions.extract()[items.index(i)].strip()
 			except Exception:
 				print "null"
 			meta = {}
@@ -101,6 +105,30 @@ class KlbcSpider(Spider):
 			meta['mo_ta'] = description
 			url = original_url + item_id
 			yield scrapy.Request(url,callback =self.parse_document,meta = meta) 
+
+# def parse_page(self,response):
+# 		items  = response.xpath('//div[@class="item"]')
+# 		original_url = "http://vbpl.vn/TW/Pages/vbpq-toanvan.aspx?ItemID="
+# 		for i in items:
+# 			# link = ""
+# 			link = i.xpath('//p[@class="title"]/a')
+# 			# l = link.xpath('@href').extract()[0]
+# 			l = i.xpath('//p[@class="title"]/a/@href').extract()[0]
+# 			item_id = (l.split('ItemID=')[1]).split('&')[0]
+# 			name = ""
+# 			description = ""
+# 			try:
+# 				name = (i.xpath('//p[@class="title"]/a/text()').extract_first()).strip()
+# 				description = (i.xpath('//div[@class="left"]/div[@class="des"]/p/text()').extract_first()).strip()
+# 			except Exception:
+# 				print "null"
+# 			meta = {}
+# 			meta['item_id'] = item_id
+# 			meta['ten_vb'] = name
+# 			meta['mo_ta'] = description
+# 			url = original_url + item_id
+# 			yield scrapy.Request(url,callback =self.parse_document,meta = meta) 
+
 
 
 	def parse_document(self, response):
