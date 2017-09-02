@@ -25,7 +25,8 @@ def to_unicode(string, encoding = 'utf-8'):
 
 def check_data(data):
 	if(len(data) > 0):
-		return data[0].strip()
+		# return data[0].strip()
+		return ', '.join(x.strip() for x in data)
 	else:
 		return ''
 
@@ -57,45 +58,28 @@ class KlbcSpider(Spider):
 	# def parse(self, response):
 	# 	original_url = "http://vbpl.vn/TW/Pages/vbpq-toanvan.aspx?ItemID="
 	# 	#id_list = ["32970","32603","27708","97167","26403","26404","12272","12661","16868","26759","17750","13914","21957","22072","21957","20981"]
-	# 	id_list = ["122388"]
+	# 	id_list = ["11635"]
 
 	# 	for i in id_list:
 	# 		meta = {}
 	# 		meta['item_id'] = i
+	# 		meta['ten_vb'] = ''
+	# 		meta['mo_ta'] = ''
 	# 		original_url_tmp = original_url + i 
 	# 		yield scrapy.Request(original_url_tmp, callback = self.parse_document, meta = meta)
 
-
-	# def parse_page(self, response):
-	# 	l = response.xpath('//div[@class="item"]')
-	# 	links = l.xpath('//p[@class="title"]/a')
-	# 	original_url = "http://vbpl.vn/TW/Pages/vbpq-toanvan.aspx?ItemID="
-		
-	# 	for link in links:
-	# 		href = link.xpath('@href').extract()[0]
-	# 		item_id = href.split('=')[1].split('&')[0]
-			
-	# 		meta = {}
-	# 		meta['item_id'] = item_id
-	# 		url = original_url + item_id
-	# 		yield scrapy.Request(url, callback = self.parse_document, meta = meta)
-			# yield scrapy.Request(url, callback = self.parse_get_pdt_file,meta = meta)
 
 	def parse_page(self,response):
 		items  = response.xpath('//div[@class="item"]//p[@class="title"]')
 		original_url = "http://vbpl.vn/TW/Pages/vbpq-toanvan.aspx?ItemID="
 		descriptions = response.xpath('//div[@class="item"]//div[@class="left"]/div[@class="des"]/p/text()')
 		for i in items:
-			# link = ""
-			# link = i.xpath('//p[@class="title"]/a')
-			# l = link.xpath('@href').extract()[0]
 			l = i.xpath('a/@href').extract()[0]
 			item_id = (l.split('ItemID=')[1]).split('&')[0]
 			name = ""
 			description = ""
 			try:
 				name = (i.xpath('a/text()').extract_first()).strip()
-				# description = (i.xpath('//div[@class="left"]/div[@class="des"]/p/text()').extract_first()).strip()
 				description = descriptions.extract()[items.index(i)].strip()
 			except Exception:
 				print "null"
@@ -106,38 +90,12 @@ class KlbcSpider(Spider):
 			url = original_url + item_id
 			yield scrapy.Request(url,callback =self.parse_document,meta = meta) 
 
-# def parse_page(self,response):
-# 		items  = response.xpath('//div[@class="item"]')
-# 		original_url = "http://vbpl.vn/TW/Pages/vbpq-toanvan.aspx?ItemID="
-# 		for i in items:
-# 			# link = ""
-# 			link = i.xpath('//p[@class="title"]/a')
-# 			# l = link.xpath('@href').extract()[0]
-# 			l = i.xpath('//p[@class="title"]/a/@href').extract()[0]
-# 			item_id = (l.split('ItemID=')[1]).split('&')[0]
-# 			name = ""
-# 			description = ""
-# 			try:
-# 				name = (i.xpath('//p[@class="title"]/a/text()').extract_first()).strip()
-# 				description = (i.xpath('//div[@class="left"]/div[@class="des"]/p/text()').extract_first()).strip()
-# 			except Exception:
-# 				print "null"
-# 			meta = {}
-# 			meta['item_id'] = item_id
-# 			meta['ten_vb'] = name
-# 			meta['mo_ta'] = description
-# 			url = original_url + item_id
-# 			yield scrapy.Request(url,callback =self.parse_document,meta = meta) 
-
-
 
 	def parse_document(self, response):
-#		print response.headers
 		meta = response.meta
 		directory = settings['DIRECTORY'] + "/" + meta['item_id']
 		fulltext_file_name = directory + '/' + meta['item_id'] + '.txt'
 		fulltext_file_name_with_html = directory + '/' + meta['item_id'] + '_html.txt'
-		# div_content = response.xpath("//div[@id='toanvancontent']")
 		div_content = response.xpath("//div[@class='fulltext']/div[2]")
 		div_content1 = response.xpath("//a[@id='A3']/@href").extract_first()
 		meta['full_text'] = ""
@@ -150,26 +108,12 @@ class KlbcSpider(Spider):
 			fulltext_file = open(fulltext_file_name, "w")
 			fulltext_file_html = open(fulltext_file_name_with_html,"w")
 			fulltext_file_html.write(content.encode('utf-8'))
-#######################		
 			meta['full_html'] = content.encode('utf-8')
-			# meta['full_text'] = html2text.html2text(content).encode('utf-8')
-
-			# a = html2text.html2text(content).encode('utf-8')
 			a = html2text.HTML2Text()
-
 			a.ignore_links = True
 			b = a.handle(content).encode('utf-8')
-
 			meta['full_text'] = re.sub(r"\n(?!\n)"," ",b)
-			# meta['full_text'] = b.replace('\n',' ')
 			fulltext_file.write(b)
-
-			# post = {}
-			# post['id'] = meta['item_id']
-			# post['fulltext'] = a
-			# post['fullhtml'] = b
-			# self.collection.insert_one(post)
-##########################s
 			url = "http://vbpl.vn/TW/Pages/vbpq-thuoctinh.aspx?ItemID=" + meta['item_id']
 			yield scrapy.Request(url, callback = self.parse_attribute, meta = meta)
 
@@ -258,13 +202,7 @@ class KlbcSpider(Spider):
 
 	def parse_related_documents(self, response):
 		meta = response.meta
-		# directory = '/home/nhatan/python/data_dev/'
-		# attribute_list_file_name = directory + 'result.json'
 
-		# if not os.path.exists(directory):
-		# 	os.makedirs(directory)
-
-		# list_properties = KlbcItem()
 		list_properties = {}
 		list_properties['ten_vb'] = meta['ten_vb']
 		list_properties['mo_ta'] = meta['mo_ta']
@@ -282,22 +220,21 @@ class KlbcSpider(Spider):
 		list_properties['linh_vuc'] = meta['linh_vuc']
 		temp = int(meta['tong_so_co_quan'])
 
-		# coquanbanhanh = {}
-		# chucdanh = {}
-		# nguoiki={}
-
-		# for i in range(1,temp+1):
-		# 	coquanbanhanh['co_quan_ban_hanh_' + str(i)] = meta['co_quan_ban_hanh_'+str(i)]
-		# 	chucdanh['chuc_danh_' + str(i)] = meta['chuc_danh_'+str(i)]
-		# 	nguoiki['nguoi_ki_'+ str(i)] = meta['nguoi_ki_'+str(i)]
-		# list_properties['co_quan_ban_hanh'] = coquanbanhanh
-		# list_properties['chuc_danh'] = chucdanh
-		# list_properties['nguoi_ki'] = nguoiki
+		list_properties['tong_so_co_quan'] = temp
+		co_quan_ban_hanh = []
+		nguoi_ki = []
+		chuc_danh = []
 
 		for i in range(1,temp+1):
 			list_properties['co_quan_ban_hanh_' + str(i)] = meta['co_quan_ban_hanh_'+str(i)]
 			list_properties['chuc_danh_' + str(i)] = meta['chuc_danh_'+str(i)]
 			list_properties['nguoi_ki_'+ str(i)] = meta['nguoi_ki_'+str(i)]
+			co_quan_ban_hanh.append(meta['co_quan_ban_hanh_'+str(i)])
+			nguoi_ki.append(meta['nguoi_ki_'+str(i)])
+			chuc_danh.append(meta['chuc_danh_'+str(i)])
+		list_properties['co_quan_ban_hanh'] = ', '.join(co_quan_ban_hanh)
+		list_properties['nguoi_ki'] = ', '.join(nguoi_ki)
+		list_properties['chuc_danh'] = ', '.join(chuc_danh)
 
 		list_properties['pham_vi'] = meta['pham_vi']
 		list_properties['thong_tin_ap_dung'] = meta['thong_tin_ap_dung']
@@ -358,27 +295,19 @@ class KlbcSpider(Spider):
 				doc_type = 'vb_sua_doi'
 			else:
 				continue
+			tmp = []
 			num_documents_related = len(div_related_documents.xpath('//div[@class="content"]/table/tbody/tr[' 
 						+ `i + 1` + ']/td[2]/ul[@class="listVB"]/li'))
-			# tmp = {}
 			for j in range(0, num_documents_related):
 				item_related_id = check_data(div_related_documents.xpath('//div[@class="content"]'
 					+'/table/tbody/tr[' + `i + 1` + ']/td[2]/ul[@class="listVB"]/li[' 
 					+ `j + 1` + ']/div[@class="item"]/p[@class="title"]/a/@href')
 					.extract()).split("=")[1]
 				list_properties[doc_type +'_'+ `j + 1`] = item_related_id
-			# list_properties[doc_type] = tmp
-		print list_properties['item_id']
+				tmp.append(item_related_id)
+			list_properties[doc_type] = ', '.join(tmp)
 		self.collection.insert_one(list_properties)
-		# yield list_properties
-		#with codecs.open(attribute_list_file_name, 'w', encoding = 'utf-8') as fp:
-		#	json.dump(list_properties, fp, indent = 2)
 
-		# with io.open(attribute_list_file_name,'a',encoding = 'utf-8') as json_file: 
-		# 	data = json.dumps(list_properties, ensure_ascii=False)
-		# 	json_file.write(unicode(data))
-#	def parse_parse_get_pdt_file(self, response):
-#		meta = response.meta
 
 
 	def save_pdf(self, response):
